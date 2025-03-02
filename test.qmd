@@ -1,0 +1,15 @@
+---
+title: "Python"
+author: "John"
+format: html
+---
+
+# Quarto
+
+```{python}
+print("Hello world!")
+```
+
+```{python}
+import pandas as pd
+```
