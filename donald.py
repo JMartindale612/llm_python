@@ -4,8 +4,10 @@
 
 import pandas as pd
 import numpy as np
+import re as re
 from sklearn.model_selection import train_test_split
 from transformers import pipeline
+import pdb
 
 df = pd.read_csv("data/donald_representative_domain-group_txt.csv")
 
@@ -79,7 +81,19 @@ Now please read the following text and provide a single numeric SCORE from 0.0 t
 SCORE:
 """
 
-# Generate
+df
+
+pd.set_option('display.max_colwidth', None)
+print(df.iloc[0])
+
+df.iloc[0] 
+
+
+## Text approach ----
+
+model_name = "gpt2"
+generator = pipeline("text-generation", model=model_name)
+
 generation = generator(
     prompt,
     max_new_tokens=50,      # Limit how many tokens we generate
@@ -88,10 +102,6 @@ generation = generator(
 )
 
 model_output = generation[0]["generated_text"]
-print("=== RAW MODEL OUTPUT ===")
-print(model_output)
-
-import re
 
 def extract_score(text_output):
     # A simple regex searching for a pattern like "SCORE: 0.xx"
@@ -103,24 +113,29 @@ def extract_score(text_output):
         return None
 
 predicted_score = extract_score(model_output)
-print("Predicted score:", predicted_score)
 
 scores = []
 for i, row in df.iterrows():
-    new_text = row["article_text"]
+    new_text = row["text"]  # e.g. text for the i-th row
     
     prompt = f"""{nostalgia_definition}
 
-    {nostalgia_examples}
+Below are some examples where we assigned a numeric score from 0.0 (no nostalgia-driven populism) 
+to 1.0 (strong nostalgia-driven populism).
 
-    TEXT: "{new_text}"
-    SCORE:
-    """
-    
+{nostalgia_examples}
+
+Now please read the following text and provide a single numeric SCORE from 0.0 to 1.0:
+
+{new_text}
+SCORE:
+"""
+
     out = generator(prompt, max_new_tokens=50, do_sample=False)
     score_text = out[0]["generated_text"]
     predicted_score = extract_score(score_text)
     scores.append(predicted_score)
+
 
 df["populism_score"] = scores
 df.to_csv("my_articles_with_scores.csv", index=False)
